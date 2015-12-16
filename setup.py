@@ -1,9 +1,12 @@
 from distutils.core import setup
 
-setup(name='speech-processing',
+setup(
+  name='speech-processing',
   version='0.1',
   description='Python speech averaging and comparison',
   author='Andrew Pedley',
   url='https://github.com/vocalize/speechprocessing',
-  packages=['speechprocessing'],
-  )
+  author_email='apedley@gmail.com',
+  keywords=['speech', 'processing'],
+  packages=['speechprocessing']
+)
