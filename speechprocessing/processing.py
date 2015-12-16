@@ -57,11 +57,11 @@ def match_length(input_path, output_path, match_path, force=False):
         print 'wrong size'
         return -1
 
-def filter(input_path, output_path):
+def filter(input_path, output_path, lowcut=100.0, highcut=3000.0, rate=44100):
     if check_file_paths([input_path]) == -1:
         return -1
     data, rate = ffmpeg_load_audio(input_path, 44100, True, dtype=np.float32)
-    filtered_data = butter_bandpass_filter(data, 100.0, 3000.0, 44100)
+    filtered_data = butter_bandpass_filter(data, lowcut, highcut, rate)
     wavwrite(output_path, 44100, filtered_data)
 
 def compare(control_path, exp_path):
@@ -74,6 +74,36 @@ def compare(control_path, exp_path):
     dist, cost, acc = dtw.dtw(x, y, dist=lambda x, y: dtw.norm(x - y, ord=1))\
 
     return dist
+
+def average(*args):
+    if len(args) < 2:
+        print 'Invalid number of arguments'
+        return -1
+
+    output_path = args[0]
+    input_paths = args[1:]
+    processed_wav_data = []
+    if check_file_paths(input_paths) == -1:
+        return -1
+    for path in input_paths:
+        data, rate = ffmpeg_load_audio(path, 44100, True, dtype=np.float32)
+        filtered_data = butter_bandpass_filter(data, 100.0, 3000.0, 44100)
+        processed_wav_data.append(filtered_data)
+
+    fft_data = []
+
+    for data in processed_wav_data:
+        fft_data.append(np.fft.rfft(data))
+
+    # Adding a * before an array of arrays makes it zip array-wise
+    # .. or something. Nobody really knows how or why this works
+    zipped_data = zip(*fft_data)
+
+    mean_data = map(np.mean, zipped_data)
+
+    # Reverse real fft
+    averaged = np.fft.irfft(mean_data)
+    wavwrite(output_path, 44100.0, averaged)
 
 def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     nyq = 0.5 * fs
