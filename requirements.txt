@@ -1,0 +1,5 @@
+numpy
+scipy
+dtw
+features
+pydub
