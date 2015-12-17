@@ -1,3 +1,3 @@
 # speech processing
 ## installation
-`pip install speechprocessing`
+`pip install speech-processing`
