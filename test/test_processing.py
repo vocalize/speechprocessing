@@ -97,8 +97,14 @@ def test_average():
     
     assert all([i==j for i,j in zip(snd, testResult )])
 
+def test_paths():
+    pathArr = ['paths/testumbrella.wav']
+    assert processing.check_file_paths(pathArr) == -1
    
    
+
+
+
 
 
 
