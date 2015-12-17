@@ -16,13 +16,32 @@ from features import logfbank
 FFMPEG_BIN = 'ffmpeg'
 
 def chop(input_path, output_path, start_ms=30, end_ms=30):
-  if check_file_paths([input_path]) == -1:
-    return -1
-  sound = AudioSegment.from_file(input_path, format="wav")
-  chopped_sound = sound[start_ms:-end_ms]
-  chopped_sound.export(output_path, format="wav")
+    """
+    Chops off a few milliseconds from the beginning and the end of an audio file.
+
+    :param input_path: the input wav path
+    :param output_path: the output wav path
+    :param start_ms: the number of milliseconds to chop off the beginning of the file
+    :param end_ms: the number of milliseconds to chop off the end of the file
+    :returns: -1 if a file does not exist
+    """
+    if check_file_paths([input_path]) == -1:
+        return -1
+    sound = AudioSegment.from_file(input_path, format="wav")
+    chopped_sound = sound[start_ms:-end_ms]
+    chopped_sound.export(output_path, format="wav")
+
 
 def trim(input_path, output_path, silence_threshold=-40.0, chunk_size=10):
+    """
+    Removes silence audio from the beginning and end of a wav file.
+
+    :param input_path: the input wav path
+    :param output_path: the output wav path
+    :param silence_threshold: the volume that the function considers silence
+    :param chunk_size: the step length in millsends (increase for a speed)
+    :returns: -1 if a file does not exist
+    """
     if check_file_paths([input_path]) == -1:
         return -1
     sound = AudioSegment.from_file(input_path, format="wav")
@@ -34,6 +53,15 @@ def trim(input_path, output_path, silence_threshold=-40.0, chunk_size=10):
     trimmed_sound.export(output_path, format="wav")
 
 def match_length(input_path, output_path, match_path, force=False):
+    """
+    Speeds up or slows down a wav file so that the length matches the length of another wav file.
+
+    :param input_path: the input wav path
+    :param output_path: the output wav path
+    :param match_path: the path of the wav to match the length of
+    :param force: call recursively if the input_path and match_path lengths vary greatly (not in betwee 0.5 and 2.0)
+    :returns: -1 if a file does not exist or ffmpeg fails
+    """
     if check_file_paths([input_path, match_path]) == -1:
         return -1
     
@@ -58,6 +86,18 @@ def match_length(input_path, output_path, match_path, force=False):
         return -1
 
 def filter(input_path, output_path, lowcut=100.0, highcut=3000.0, rate=44100):
+    """
+    Filters a wav file to get rid of frequencies not present in human speech. Band pass filter.
+
+    :param input_path: the input wav path
+    :param output_path: the output wav path
+    :param lowcut: the lowest frequency to accept
+    :param highcut: the highest frequency to accept
+    :param rate: the sampling frequency
+    :type rate: Number
+    :param force: call recursively if the input_path and match_path lengths vary greatly (not in betwee 0.5 and 2.0)
+    :returns: -1 if a file does not exist
+    """
     if check_file_paths([input_path]) == -1:
         return -1
     data, rate = ffmpeg_load_audio(input_path, 44100, True, dtype=np.float32)
@@ -65,6 +105,12 @@ def filter(input_path, output_path, lowcut=100.0, highcut=3000.0, rate=44100):
     wavwrite(output_path, 44100, filtered_data)
 
 def compare(control_path, exp_path):
+    """
+    Compares two wav files and returns a score. Uses mel frequency ceptrum coefficients as well as dynamic time warping.
+
+    :param control_path: the 'correct' wav - what you are comparing to
+    :param exp_path: the unknown wav
+    """
     (rate,sig) = wavread(control_path)
     (rate2,sig2) = wavread(exp_path)
 
@@ -76,6 +122,17 @@ def compare(control_path, exp_path):
     return dist
 
 def average(*args):
+    """
+    Averages multiple wav files together. Accomplishes this by performing fast fourier transforms on the data, averaging those arrays, and then performing an inverse fast fourier transform.
+
+    :param args: array of wav paths with the output being the first path and the rest being inputs
+    :returns: -1 if it fails or if it cannot find the paths
+
+    :Example:
+
+    >>> import speechprocessing
+    >>> speechprocessing.average('output.wav', 'input_one.wav', 'input_two.wav')
+    """
     if len(args) < 2:
         print 'Invalid number of arguments'
         return -1
@@ -106,6 +163,15 @@ def average(*args):
     wavwrite(output_path, 44100.0, averaged)
 
 def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
+    """
+    Runs a Butterworth bandpass filter on sound data
+
+    :param data: sound data to filter
+    :param lowcut: the lowest frequency to accept
+    :param highcut: the highest frequency to accept
+    :param fs: sampling frequency
+    :param order: the order of the filter
+    """
     nyq = 0.5 * fs
     low = lowcut / nyq
     high = highcut / nyq
@@ -114,6 +180,14 @@ def butter_bandpass_filter(data, lowcut, highcut, fs, order=5):
     return y
 
 def ffmpeg_load_audio(filename, sr=44100, mono=True, dtype=np.float32):
+    """
+    Loads a wav file using ffmpeg to read and create a stream. Required because sometimes wav read doesn't work and no one (probably just me) knows why.
+
+    :param filename: file path to load
+    :param sr: sampling frequency
+    :param mono: True if only one channel
+    :param dtype: the data type to load the data as
+    """
     channels = 1 if mono else 2
     format_strings = {
         np.float64: 'f64le',
@@ -149,7 +223,14 @@ def ffmpeg_load_audio(filename, sr=44100, mono=True, dtype=np.float32):
 
 
 def change_length(input_path, output_path, length_coefficient, log=False):
+    """
+    Change the length of an audio file
 
+    :param input_path: the input wav path
+    :param output_path: the output wav path
+    :param length_coefficient: the number to multiply the length by ffmpeg only accepts numbers between 0.5 and 2.0
+    :param log: log output to stderr
+    """
     atempo = 'atempo=' + str(length_coefficient)
 
     command = [ FFMPEG_BIN,
@@ -165,6 +246,13 @@ def change_length(input_path, output_path, length_coefficient, log=False):
     sp.call(command, shell=False)
 
 def detect_leading_silence(sound, silence_threshold=-40.0, chunk_size=10):
+    """
+    Detects the amount of silence at the begnning of a wav file
+
+    :param sound: the sound data
+    :param silence_threshold: the volume to consider silence
+    :param chunk_size: the step length in millsends (increase for a speed)
+    """
     trim_ms = 0 # ms
     while sound[trim_ms:trim_ms+chunk_size].dBFS < silence_threshold:
         trim_ms += chunk_size
@@ -172,6 +260,12 @@ def detect_leading_silence(sound, silence_threshold=-40.0, chunk_size=10):
     return trim_ms
 
 def check_file_paths(file_path_list):
+    """
+    Checks all file paths in an array to make sure they exist
+
+    :param file_path_list: array of file paths to check
+    :returns: -1 if one or more files does not exist
+    """
     for file_path in file_path_list:
         if not os.path.exists(file_path):
             print('File: ' + file_path + ' does not exist.')
