@@ -1,5 +1,5 @@
-
-import processing
+import imp
+processing = imp.load_source('processing', '../speechprocessing/processing.py')
 import os
 
 def length(path):
