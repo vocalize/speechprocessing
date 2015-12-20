@@ -29,6 +29,7 @@ def chop(input_path, output_path, start_ms=30, end_ms=30):
         return -1
     sound = AudioSegment.from_file(input_path, format="wav")
     chopped_sound = sound[start_ms:-end_ms]
+    # return chopped_sound
     chopped_sound.export(output_path, format="wav")
 
 
@@ -50,6 +51,7 @@ def trim(input_path, output_path, silence_threshold=-40.0, chunk_size=10):
 
     duration = len(sound)    
     trimmed_sound = sound[start_trim:duration-end_trim]
+    # return trimmed_sound
     trimmed_sound.export(output_path, format="wav")
 
 def match_length(input_path, output_path, match_path, force=False):
@@ -102,6 +104,7 @@ def filter(input_path, output_path, lowcut=100.0, highcut=3000.0, rate=44100):
         return -1
     data, rate = ffmpeg_load_audio(input_path, 44100, True, dtype=np.float32)
     filtered_data = butter_bandpass_filter(data, lowcut, highcut, rate)
+    # return filtered_data
     wavwrite(output_path, 44100, filtered_data)
 
 def compare(control_path, exp_path):
